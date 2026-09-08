@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="DayFlow" />
 <meta name="theme-color" content="#0a0910" />
 <link rel="manifest" href="manifest.json" />
-<link rel="apple-touch-icon" href="img/icon-02.png" />
-<link rel="icon" href="img/icon-02.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" href="icon-192.png" />
 <style>
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; height:100%; background:#0a0910; overscroll-behavior:none; }
@@ -47,6 +47,7 @@ const { useState, useMemo, useEffect } = React;
 const LS_CATEGORIES = "dayflow_categories_v1";
 const LS_COMPLETIONS = "dayflow_completions_v1";
 const LS_SETTINGS = "dayflow_settings_v1";
+const LS_MIGRATION_CLEAN_SEED = "dayflow_migration_clean_seed_v1";
 function loadJSON(key, fallback) {
   try { const raw = localStorage.getItem(key); if (raw) return JSON.parse(raw); } catch (e) {}
   return fallback;
@@ -150,23 +151,6 @@ function computeStreak(categories, completions, today, categoryFilterId) {
   }
   return { current, longest: Math.max(current, 0) };
 }
-function seedHistory(categories, today) {
-  const allSubtaskIds = categories.flatMap((c) => c.subtasks.map((s) => s.id));
-  const completions = {};
-  if (allSubtaskIds.length === 0) return completions;
-  for (let offset = 6; offset >= 1; offset--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - offset);
-    const k = keyOf(d.getFullYear(), d.getMonth(), d.getDate());
-    const doneCount = Math.min(allSubtaskIds.length, 2 + Math.floor(Math.random() * allSubtaskIds.length));
-    const shuffled = [...allSubtaskIds].sort(() => Math.random() - 0.5);
-    const doneMap = {};
-    shuffled.slice(0, doneCount).forEach((id) => (doneMap[id] = true));
-    completions[k] = doneMap;
-  }
-  return completions;
-}
-
 // ================= small presentational components (stable, top-level) =================
 function Card({ children, style }) {
   return <div style={{ background: "#151420", borderRadius: 22, padding: 20, border: "1px solid #232132", ...style }}>{children}</div>;
@@ -344,7 +328,7 @@ function CalendarTab({ viewYear, viewMonth, setViewYear, setViewMonth, today, to
       <div style={{ fontSize: 17, fontWeight: 700, color: "#f5f3ff", marginTop: 4 }}>Tasks</div>
       {selectedKey !== todayKey && (
         <p style={{ fontSize: 12, color: "#6b6878", margin: "-12px 0 0" }}>
-          {selectedKey < todayKey ? "This day was complete — check Insights if anything needs to be Update." : "This day is yet to come."}
+          {selectedKey < todayKey ? "This day's done — head to Insights if you need to fix anything." : "This day hasn't arrived yet."}
         </p>
       )}
       {categories.length === 0 && (
@@ -845,12 +829,7 @@ function DayFlow() {
   const [tab, setTab] = useState("calendar");
 
   const [categories, setCategories] = useState(() => loadJSON(LS_CATEGORIES, DEFAULT_CATEGORIES));
-  const [completions, setCompletions] = useState(() => {
-    const saved = loadJSON(LS_COMPLETIONS, null);
-    if (saved) return saved;
-    const cats = loadJSON(LS_CATEGORIES, DEFAULT_CATEGORIES);
-    return seedHistory(cats, today);
-  });
+  const [completions, setCompletions] = useState(() => loadJSON(LS_COMPLETIONS, {}));
 
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -877,6 +856,15 @@ function DayFlow() {
   function askConfirm({ title, message, confirmLabel = "Delete", danger = true, onConfirm }) {
     setConfirmState({ title, message, confirmLabel, danger, onConfirm });
   }
+
+  // One-time cleanup: earlier versions auto-filled fake sample history on first load.
+  // Wipe it once, automatically, so existing installs end up on the same clean slate as a fresh one.
+  useEffect(() => {
+    if (!loadJSON(LS_MIGRATION_CLEAN_SEED, false)) {
+      setCompletions({});
+      saveJSON(LS_MIGRATION_CLEAN_SEED, true);
+    }
+  }, []);
 
   useEffect(() => { saveJSON(LS_CATEGORIES, categories); }, [categories]);
   useEffect(() => { saveJSON(LS_COMPLETIONS, completions); }, [completions]);
@@ -1001,7 +989,7 @@ function DayFlow() {
       confirmLabel: "Erase & reset",
       onConfirm: () => {
         setCategories(DEFAULT_CATEGORIES);
-        setCompletions(seedHistory(DEFAULT_CATEGORIES, today));
+        setCompletions({});
         showToast("Reset to defaults");
       },
     });
