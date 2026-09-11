@@ -31,7 +31,7 @@ Built as a single-page web app that works as a full PWA (Progressive Web App): o
 ├── index.html      # the entire app (UI, logic, styling)
 ├── manifest.json   # PWA metadata (name, icons, colors)
 ├── sw.js           # service worker — caches the app for offline use
-├── img
+└── img
       ├── icon-192.png    # app icon (small)
       └── icon-512.png    # app icon (large)
 ```
