@@ -1,10 +1,10 @@
-const CACHE_NAME = "dayflow-cache-v28";
+const CACHE_NAME = "dayflow-cache-v33";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
-  ".img/icon-192.png",
-  ".img/icon-512.png",
+  "./icon-192.png",
+  "./icon-512.png",
   "https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js",
